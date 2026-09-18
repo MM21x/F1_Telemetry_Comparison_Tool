@@ -14,8 +14,17 @@ fastf1.Cache.enable_cache("cache")
 #set up FastF1 plotting style
 fastf1.plotting.setup_mpl()
 
+#user input for f1 sessions
+session_code = input("Please enter a session code (FP1, FP2, FP3, Q(ualifying), S(print), SQ(sprint qualifying), R(race)): ").strip().upper()
+
+valid_sessions = {"FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R"}
+
+if session_code not in valid_sessions:
+    raise ValueError(f"Invalid session code: {session_code}")
+
 #Build session data for 2024 monaco quali
-session = fastf1.get_session(2024, "Monaco", "Q")
+session = fastf1.get_session(2024, "Monaco", session_code)
+
 
 #Download and prepare the session data so laps become available
 session.load()
@@ -99,7 +108,7 @@ ax1.set_xlabel("Distance (m)")
 ax1.set_ylabel("Speed (km/h)")
 
 ax2 = ax1.twinx()
-ax2.plot(ref_tel["Distance"], delta_time, color="white", linestyle="--", label=f"Delta to P1:{p1_driver}")
+ax2.plot(ref_tel["Distance"], delta_time, color="white", linestyle="--", label=f"Delta to P1: ({p1_driver})")
 ax2.set_ylabel("Delta time (s)")
 
 ax1.set_title(f"{session.event['EventName']} {session.event.year} Qualifying\nSpeed Trace + Delta Time")
