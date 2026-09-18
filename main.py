@@ -8,7 +8,7 @@ os.makedirs("cache", exist_ok=True)
 fastf1.Cache.enable_cache("cache")
 
 #set up FastF1 plotting style
-fastf1.plotting.setup_mpl
+fastf1.plotting.setup_mpl()
 
 #Build session data for 2024 monaco quali
 session = fastf1.get_session(2024, "Monaco", "Q")
