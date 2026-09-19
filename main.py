@@ -8,6 +8,8 @@ import fastf1.plotting  # plot styling + team colours
 import fastf1.utils
 from matplotlib import pyplot as plt
 
+from fastf1.core import InvalidSessionError, NoLapDataError
+
 
 # Create and enable a local cache so session data is reused between runs
 os.makedirs("cache", exist_ok=True)
@@ -49,14 +51,16 @@ def main():
 
     event_name = input("Enter event name or round number (e.g Monaco or 8): ").strip()
 
-    session_code = input(
-        "Please enter a session code (FP1, FP2, FP3, Q(ualifying), S(print), SQ(sprint qualifying), R(race)): "
-    ).strip().upper()
-
     valid_sessions = {"FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R"}
 
-    if session_code not in valid_sessions:
-        raise ValueError(f"Invalid session code: {session_code}")
+    while True:
+            session_code = input(
+                "Please enter a session code (FP1, FP2, FP3, Q(ualifying), S(print), SQ(sprint qualifying), R(race)): ").strip().upper()
+
+            if session_code in valid_sessions:
+                break
+    
+            print(f"Invalid session code: {session_code}")
 
     if event_name.isdigit():
         event_name = int(event_name)
@@ -101,20 +105,24 @@ def main():
     print(f"Accurate lap: {p1_is_accurate}")
     print()
 
-    compare_driver = input(
-        "Enter a driver codename (3 letters) to compare against P1 (e.g HAM, ALO): "
-    ).strip().upper()
+    while True:
+        compare_driver = input(
+            "Enter a driver codename (3 letters) to compare against P1 (e.g HAM, ALO): ").strip().upper()
 
-    # Get chosen driver's fastest lap
-    compare_lap = session.laps.pick_drivers(compare_driver).pick_fastest()
+        # Stop if user chooses the p1 driver
+        if compare_driver == p1_driver:
+            print(f"{compare_driver} is P1, choose a different driver")
+            continue
 
-    # Stop if code is invalid or if theres no valid lap
-    if compare_lap is None:
-        raise ValueError(f"No valid lap found for driver code: {compare_driver}")
+        # Get chosen driver's fastest lap
+        compare_lap = session.laps.pick_drivers(compare_driver).pick_fastest()
 
-    # Stop if user chooses the p1 driver
-    if compare_driver == p1_driver:
-        raise ValueError(f"{compare_driver} is P1, choose a different driver")
+        # Stop if code is invalid or if theres no valid lap
+        if compare_lap is None:
+            print(f"No valid lap found for driver code: {compare_driver}")
+            continue
+
+        break
 
     # Get comparison driver details
     compare_lap_time = compare_lap["LapTime"]
@@ -123,13 +131,49 @@ def main():
     compare_is_accurate = compare_lap["IsAccurate"]
     compare_color = fastf1.plotting.get_team_color(compare_team, session=session)
 
+    lap_gap = compare_lap_time - p1_lap_time
+
+    p1_s1 = p1_lap["Sector1Time"]
+    p1_s2 = p1_lap["Sector2Time"]
+    p1_s3 = p1_lap["Sector3Time"]
+
+    compare_s1 = compare_lap["Sector1Time"]
+    compare_s2 = compare_lap["Sector2Time"]
+    compare_s3 = compare_lap["Sector3Time"]
+
+    sector_comparison_available = not any(
+        value is None for value in [p1_s1, p1_s2, p1_s3, compare_s1, compare_s2, compare_s3]
+    )
+
+    if sector_comparison_available:
+        s1_gap = compare_s1 - p1_s1
+        s2_gap = compare_s2 - p1_s2
+        s3_gap = compare_s3 - p1_s3
+
+        sector_gaps = {
+            "Sector 1": s1_gap.total_seconds(),
+            "Sector 2": s2_gap.total_seconds(),
+            "Sector 3": s3_gap.total_seconds()
+        }
+
+        worst_sector = max(sector_gaps, key=sector_gaps.get)
+
     print(f"{compare_driver}:")
     print(f"Lap time: {format_lap_time(compare_lap_time)}")
     print(f"Lap number: {compare_lap_number}")
     print(f"Team: {compare_team}")
     print(f"Accurate lap: {compare_is_accurate}")
-    print()
+    print(f"Gap to P1: +{lap_gap.total_seconds():.3f}s")
 
+    if sector_comparison_available:
+        print(f"Sector 1 gap: {s1_gap.total_seconds():+.3f}s")
+        print(f"Sector 2 gap: {s2_gap.total_seconds():+.3f}s")
+        print(f"Sector 3 gap: {s3_gap.total_seconds():+.3f}s")
+        print(f"Biggest loss: {worst_sector}")
+    else:
+        print("Sector comparison unavailable because one or more sector times are missing.")
+
+    print()
     delta_time, ref_tel, compare_tel = fastf1.utils.delta_time(p1_lap, compare_lap)
 
     # Plotting speed trace + delta time, P1 as reference lap
@@ -163,4 +207,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as error:
+        print(f"\nError: {error}")
+    except (InvalidSessionError, NoLapDataError) as error:
+        print(f"\nFastF1 error: {error}")
