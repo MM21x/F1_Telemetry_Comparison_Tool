@@ -8,7 +8,7 @@ import fastf1.plotting  # plot styling + team colours
 import fastf1.utils
 from matplotlib import pyplot as plt
 
-from fastf1.core import InvalidSessionError, NoLapDataError
+from fastf1.exceptions import InvalidSessionError, NoLapDataError
 
 
 # Create and enable a local cache so session data is reused between runs
@@ -40,7 +40,7 @@ def format_lap_time(lap_time):
     return f"{seconds:.3f}"
 
 
-def main():
+def run_comparison():
     # User input for F1 sessions
     while True:
         try:
@@ -89,6 +89,9 @@ def main():
         p1_lap = session.laps.pick_fastest()
         p1_label = "Fastest lap in session"
 
+    if p1_lap is None:
+        raise ValueError("No valid fastest lap found for this session.")
+    
     # Get P1 details
     p1_driver = p1_lap["Driver"]
     p1_lap_time = p1_lap["LapTime"]
@@ -205,11 +208,25 @@ def main():
     plt.tight_layout()
     plt.show()
 
+def main():
+    while True:
+        try:
+            run_comparison()
+        except ValueError as error:
+            print(f"\nError: {error}")
+        except (InvalidSessionError, NoLapDataError) as error:
+            print(f"\nFastF1 error: {error}")
+
+        while True:
+            again = input("\nRun another comparison? (Y/N): ").strip().upper()
+            if again in {"Y", "N"}:
+                break
+            print("Please enter Y or N.")
+
+        if again != "Y":
+            print("Goodbye.")
+            break
+
 
 if __name__ == "__main__":
-    try:
-        main()
-    except ValueError as error:
-        print(f"\nError: {error}")
-    except (InvalidSessionError, NoLapDataError) as error:
-        print(f"\nFastF1 error: {error}")
+    main()
