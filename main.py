@@ -1,4 +1,4 @@
-"""Compare a selected driver's fastest qualifying lap against P1 using FastF1 telemetry."""
+"""Compare a selected driver's fastest lap against P1 using FastF1 telemetry."""
 
 import os #creates cache folder
 
@@ -15,6 +15,11 @@ fastf1.Cache.enable_cache("cache")
 fastf1.plotting.setup_mpl()
 
 #user input for f1 sessions
+year = int(input("Enter season year (e.g. 2024): ").strip())
+#  .strip removes whitespace from start and end of string
+
+event_name = input("Enter event name or round number (e.g Monaco or 8)")
+
 session_code = input("Please enter a session code (FP1, FP2, FP3, Q(ualifying), S(print), SQ(sprint qualifying), R(race)): ").strip().upper()
 
 valid_sessions = {"FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R"}
@@ -22,9 +27,10 @@ valid_sessions = {"FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R"}
 if session_code not in valid_sessions:
     raise ValueError(f"Invalid session code: {session_code}")
 
-#Build session data for 2024 monaco quali
-session = fastf1.get_session(2024, "Monaco", session_code)
+if event_name.isdigit():
+    event_name = int(event_name)
 
+session = fastf1.get_session(year, event_name, session_code)
 
 #Download and prepare the session data so laps become available
 session.load()
@@ -44,10 +50,53 @@ ver_tel = ver_lap.get_car_data().add_distance()
 lec_color = fastf1.plotting.get_team_color(lec_lap["Team"], session=session)
 ver_color = fastf1.plotting.get_team_color(ver_lap["Team"], session=session)
 
-# Calculate delta time using P1 (fastest qualifying lap) as the reference lap
-p1_lap = session.laps.pick_fastest()
+# Use Q3 fastest lap as P1 in qualifying, otherwise use fastest lap in session
+if session_code == "Q":
+    q1, q2, q3 = session.laps.split_qualifying_sessions()
+
+    # Stop if Q3 data is missing
+    if q3 is None or q3.empty:
+        raise ValueError("Q3 data is not available for this qualifying session.")
+
+    p1_lap = q3.pick_fastest()
+    p1_label = "Pole sitter"
+else:
+    p1_lap = session.laps.pick_fastest()
+    p1_label = "Fastest lap in session"
+
+
+# Get P1 driver, lap time and team colour
 p1_driver = p1_lap["Driver"]
+p1_lap_time = p1_lap["LapTime"]
 p1_color = fastf1.plotting.get_team_color(p1_lap["Team"], session=session)
+
+#   Convert lap time from timedelta into F1 style minutes, seconds and milliseconds
+#   Show times like 1:25.858 instead of 0 days 00:01:25.858000 by Getting the lap time in seconds and splitting it into minutes and seconds
+#   and return the time in the format minutes:seconds.milliseconds
+def format_lap_time(lap_time):
+    total_seconds = lap_time.total_seconds()
+    minutes = int(total_seconds // 60)
+    seconds = total_seconds % 60
+
+    if minutes > 0:
+        return f"{minutes}:{seconds:06.3f}"
+    return f"{seconds:.3f}"
+
+
+# Print the reference driver before asking for comparison input
+print()
+print(f"{p1_label}: {p1_driver}")
+print(f"Lap time: {p1_lap_time}")
+print()
+print()
+print(f"{p1_label}: {p1_driver}")
+print(f"Lap time: {p1_lap_time}")
+print()
+print()
+print(f"Loaded: {session.event['EventName']} {session.name}")
+print(f"P1 for this session is: {p1_driver}")
+print(f"Fastest lap time: {p1_lap_time}")
+print()
 
 compare_driver = input("Enter a driver codename (3 letters) to compare against The Fastest Lap (p1) (e.g HAM, ALO): ").strip().upper()
 
