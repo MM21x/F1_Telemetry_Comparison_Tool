@@ -1,6 +1,7 @@
 """Compare a selected driver's fastest lap against P1 using FastF1 telemetry."""
 
-import os  # creates cache folder
+import csv
+import os # creates cache folder
 import warnings
 
 import fastf1  # library for f1 data
@@ -13,6 +14,7 @@ from fastf1.exceptions import InvalidSessionError, NoLapDataError
 
 # Create and enable a local cache so session data is reused between runs
 os.makedirs("cache", exist_ok=True)
+os.makedirs("output", exist_ok=True)
 fastf1.Cache.enable_cache("cache")
 
 fastf1.set_log_level("ERROR")
@@ -134,7 +136,16 @@ def run_comparison():
     compare_is_accurate = compare_lap["IsAccurate"]
     compare_color = fastf1.plotting.get_team_color(compare_team, session=session)
 
+    event_slug = str(session.event["EventName"]).replace(" ", "_")
+    file_base = f"{year}_{event_slug}_{session_code}_{p1_driver}_vs_{compare_driver}"
+
     lap_gap = compare_lap_time - p1_lap_time
+
+    ref_tel = p1_lap.get_car_data().add_distance()
+    compare_tel = compare_lap.get_car_data().add_distance()
+
+    p1_top_speed = ref_tel["Speed"].max()
+    compare_top_speed = compare_tel["Speed"].max()
 
     p1_s1 = p1_lap["Sector1Time"]
     p1_s2 = p1_lap["Sector2Time"]
@@ -177,7 +188,39 @@ def run_comparison():
         print("Sector comparison unavailable because one or more sector times are missing.")
 
     print()
-    delta_time, ref_tel, compare_tel = fastf1.utils.delta_time(p1_lap, compare_lap)
+
+    csv_path = os.path.join("output", f"{file_base}_summary.csv")
+
+    summary_row = {
+        "year": year,
+        "event": session.event["EventName"],
+        "session": session_code,
+        "reference_driver": p1_driver,
+        "reference_team": p1_team,
+        "reference_lap_time": format_lap_time(p1_lap_time),
+        "reference_lap_number": p1_lap_number,
+        "reference_top_speed_kmh": round(p1_top_speed, 1),
+        "compare_driver": compare_driver,
+        "compare_team": compare_team,
+        "compare_lap_time": format_lap_time(compare_lap_time),
+        "compare_lap_number": compare_lap_number,
+        "compare_top_speed_kmh": round(compare_top_speed, 1),
+        "gap_to_p1_s": round(lap_gap.total_seconds(), 3),
+        "sector_1_gap_s": round(s1_gap.total_seconds(), 3) if sector_comparison_available else "",
+        "sector_2_gap_s": round(s2_gap.total_seconds(), 3) if sector_comparison_available else "",
+        "sector_3_gap_s": round(s3_gap.total_seconds(), 3) if sector_comparison_available else "",
+        "biggest_loss": worst_sector if sector_comparison_available else "N/A"
+    }
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=summary_row.keys())
+        writer.writeheader()
+        writer.writerow(summary_row)
+
+    print(f"Summary saved to: {csv_path}")
+    print()
+
+    delta_time, ref_tel_delta, _ = fastf1.utils.delta_time(p1_lap, compare_lap)
 
     # Plotting speed trace + delta time, P1 as reference lap
     fig, ax1 = plt.subplots(figsize=(12, 6))
@@ -189,7 +232,7 @@ def run_comparison():
 
     ax2 = ax1.twinx()
     ax2.plot(
-        ref_tel["Distance"],
+        ref_tel_delta["Distance"],
         delta_time,
         color="white",
         linestyle="--",
@@ -206,6 +249,11 @@ def run_comparison():
     ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="best")
 
     plt.tight_layout()
+
+    plot_path = os.path.join("output", f"{file_base}_plot.png")
+    fig.savefig(plot_path, dpi=300, bbox_inches="tight")
+    print(f"Plot saved to: {plot_path}")
+
     plt.show()
 
 def main():
