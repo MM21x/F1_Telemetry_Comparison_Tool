@@ -147,6 +147,9 @@ def run_comparison():
     p1_top_speed = ref_tel["Speed"].max()
     compare_top_speed = compare_tel["Speed"].max()
 
+    ref_tel["DRS_Open"] = ref_tel["DRS"].apply(lambda x: 1 if x in [2, 3, 10, 12, 14] else 0)
+    compare_tel["DRS_Open"] = compare_tel["DRS"].apply(lambda x: 1 if x in [2, 3, 10, 12, 14] else 0)
+
     p1_s1 = p1_lap["Sector1Time"]
     p1_s2 = p1_lap["Sector2Time"]
     p1_s3 = p1_lap["Sector3Time"]
@@ -221,7 +224,7 @@ def run_comparison():
     print()
 
     # Plotting speed, throttle, and brake traces
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(12, 15), sharex=True)
 
     # Speed
     ax1.plot(ref_tel["Distance"], ref_tel["Speed"], color=p1_color, label=p1_driver)
@@ -240,13 +243,31 @@ def run_comparison():
     ax3.set_ylabel("Brake (%)")
     ax3.set_xlabel("Distance (m)")
 
+    # RPM
+    ax4.plot(ref_tel["Distance"], ref_tel["RPM"], color=p1_color, label=p1_driver)
+    ax4.plot(compare_tel["Distance"], compare_tel["RPM"], color=compare_color, label=compare_driver)
+    ax4.set_ylabel("RPM")
+
+    # Gear
+    ax5.step(ref_tel["Distance"], ref_tel["nGear"], where="post", color=p1_color, label=p1_driver)
+    ax5.step(compare_tel["Distance"], compare_tel["nGear"], where="post", color=compare_color, label=compare_driver)
+    ax5.set_ylabel("Gear")
+    ax5.set_yticks(range(1, 9))
+
+    # DRS
+    ax6.step(ref_tel["Distance"], ref_tel["DRS_Open"], where="post", color=p1_color, label=p1_driver)
+    ax6.step(compare_tel["Distance"], compare_tel["DRS_Open"], where="post", color=compare_color, label=compare_driver)
+    ax6.set_ylabel("DRS")
+    ax6.set_yticks([0, 1])
+    ax6.set_yticklabels(["Off", "On"])
+    ax6.set_xlabel("Distance (m)")
     fig.suptitle(
         f"{session.event['EventName']} {session.event.year} {session.name}\n"
         f"{p1_driver} vs {compare_driver} Telemetry Comparison",
         fontsize=14
     )
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
 
     plot_path = os.path.join("output", f"{file_base}_plot.png")
     fig.savefig(plot_path, dpi=300, bbox_inches="tight")

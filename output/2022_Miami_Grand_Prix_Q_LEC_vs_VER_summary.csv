@@ -1,0 +1,2 @@
+year,event,session,reference_driver,reference_team,reference_lap_time,reference_lap_number,reference_top_speed_kmh,compare_driver,compare_team,compare_lap_time,compare_lap_number,compare_top_speed_kmh,gap_to_p1_s,sector_1_gap_s,sector_2_gap_s,sector_3_gap_s,biggest_loss
+2022,Miami Grand Prix,Q,LEC,Ferrari,1:28.796,23.0,336.0,VER,Red Bull Racing,1:28.991,13.0,342.0,0.195,0.105,0.146,-0.056,Sector 2
