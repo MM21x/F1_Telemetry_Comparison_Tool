@@ -4,7 +4,7 @@ import csv
 import os # creates cache folder
 import warnings
 
-import fastf1  # library for f1 data
+import fastf1 # library for f1 data
 import fastf1.plotting  # plot styling + team colours
 import fastf1.utils
 from matplotlib import pyplot as plt
@@ -220,35 +220,33 @@ def run_comparison():
     print(f"Summary saved to: {csv_path}")
     print()
 
-    delta_time, ref_tel_delta, _ = fastf1.utils.delta_time(p1_lap, compare_lap)
+    # Plotting speed, throttle, and brake traces
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
 
-    # Plotting speed trace + delta time, P1 as reference lap
-    fig, ax1 = plt.subplots(figsize=(12, 6))
-
+    # Speed
     ax1.plot(ref_tel["Distance"], ref_tel["Speed"], color=p1_color, label=p1_driver)
     ax1.plot(compare_tel["Distance"], compare_tel["Speed"], color=compare_color, label=compare_driver)
-    ax1.set_xlabel("Distance (m)")
     ax1.set_ylabel("Speed (km/h)")
+    ax1.legend(loc="best")
 
-    ax2 = ax1.twinx()
-    ax2.plot(
-        ref_tel_delta["Distance"],
-        delta_time,
-        color="white",
-        linestyle="--",
-        label=f"Delta to P1: ({p1_driver})"
+    # Throttle
+    ax2.plot(ref_tel["Distance"], ref_tel["Throttle"], color=p1_color, label=p1_driver)
+    ax2.plot(compare_tel["Distance"], compare_tel["Throttle"], color=compare_color, label=compare_driver)
+    ax2.set_ylabel("Throttle (%)")
+
+    # Brake
+    ax3.plot(ref_tel["Distance"], ref_tel["Brake"].astype(int) * 100, color=p1_color, label=p1_driver)
+    ax3.plot(compare_tel["Distance"], compare_tel["Brake"].astype(int) * 100, color=compare_color, label=compare_driver)
+    ax3.set_ylabel("Brake (%)")
+    ax3.set_xlabel("Distance (m)")
+
+    fig.suptitle(
+        f"{session.event['EventName']} {session.event.year} {session.name}\n"
+        f"{p1_driver} vs {compare_driver} Telemetry Comparison",
+        fontsize=14
     )
-    ax2.set_ylabel("Delta time (s)")
 
-    ax1.set_title(
-        f"{session.event['EventName']} {session.event.year} {session.name}\nSpeed Trace + Delta Time"
-    )
-
-    lines_1, labels_1 = ax1.get_legend_handles_labels()
-    lines_2, labels_2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc="best")
-
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
 
     plot_path = os.path.join("output", f"{file_base}_plot.png")
     fig.savefig(plot_path, dpi=300, bbox_inches="tight")
