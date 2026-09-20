@@ -144,8 +144,12 @@ def run_comparison():
     ref_tel = p1_lap.get_car_data().add_distance()
     compare_tel = compare_lap.get_car_data().add_distance()
 
+    ref_tel = ref_tel.copy()
+    compare_tel = compare_tel.copy()
+
     p1_top_speed = ref_tel["Speed"].max()
     compare_top_speed = compare_tel["Speed"].max()
+    top_speed_delta = compare_top_speed - p1_top_speed
 
     ref_tel["DRS_Open"] = ref_tel["DRS"].apply(lambda x: 1 if x in [2, 3, 10, 12, 14] else 0)
     compare_tel["DRS_Open"] = compare_tel["DRS"].apply(lambda x: 1 if x in [2, 3, 10, 12, 14] else 0)
@@ -192,6 +196,43 @@ def run_comparison():
 
     print()
 
+    if sector_comparison_available:
+        best_sector = min(sector_gaps, key=sector_gaps.get)
+
+        if sector_gaps[best_sector] < 0:
+            sector_recovery_text = f"{compare_driver} regained time in {best_sector}."
+        else:
+            sector_recovery_text = f"{compare_driver} did not gain time in any sector."
+
+        speed_text = (
+            f"Top speed deficit was {abs(top_speed_delta):.1f} km/h."
+            if top_speed_delta < 0
+            else f"Top speed advantage was {top_speed_delta:.1f} km/h."
+            if top_speed_delta > 0
+            else "Top speed was equal."
+        )
+
+        insight_text = (
+            f"Insight: {compare_driver} lost most time in {worst_sector}. "
+            f"{sector_recovery_text} {speed_text} "
+            f"Brake, throttle, RPM, gear, and DRS traces were exported for visual comparison."
+        )
+    else:
+        speed_text = (
+            f"Top speed deficit was {abs(top_speed_delta):.1f} km/h."
+            if top_speed_delta < 0
+            else f"Top speed advantage was {top_speed_delta:.1f} km/h."
+            if top_speed_delta > 0
+            else "Top speed was equal."
+        )
+
+        insight_text = (
+            f"Insight: Sector-level comparison was unavailable. {speed_text} "
+            f"Brake, throttle, RPM, gear, and DRS traces were exported for visual comparison."
+        )
+
+    print(insight_text)
+
     csv_path = os.path.join("output", f"{file_base}_summary.csv")
 
     summary_row = {
@@ -212,7 +253,9 @@ def run_comparison():
         "sector_1_gap_s": round(s1_gap.total_seconds(), 3) if sector_comparison_available else "",
         "sector_2_gap_s": round(s2_gap.total_seconds(), 3) if sector_comparison_available else "",
         "sector_3_gap_s": round(s3_gap.total_seconds(), 3) if sector_comparison_available else "",
-        "biggest_loss": worst_sector if sector_comparison_available else "N/A"
+        "biggest_loss": worst_sector if sector_comparison_available else "N/A",
+        "top_speed_delta_kmh": round(top_speed_delta, 1),
+        "insight": insight_text
     }
 
     with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
@@ -241,7 +284,6 @@ def run_comparison():
     ax3.plot(ref_tel["Distance"], ref_tel["Brake"].astype(int) * 100, color=p1_color, label=p1_driver)
     ax3.plot(compare_tel["Distance"], compare_tel["Brake"].astype(int) * 100, color=compare_color, label=compare_driver)
     ax3.set_ylabel("Brake (%)")
-    ax3.set_xlabel("Distance (m)")
 
     # RPM
     ax4.plot(ref_tel["Distance"], ref_tel["RPM"], color=p1_color, label=p1_driver)
