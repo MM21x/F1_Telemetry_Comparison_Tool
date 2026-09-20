@@ -31,7 +31,6 @@ The plot compares both drivers across:
 
 ## Example output
 
-```text
 Loaded: Miami Grand Prix Qualifying
 Pole sitter: LEC
 Lap time: 1:28.796
@@ -62,7 +61,7 @@ Insight: VER lost most time in Sector 2. VER regained time in Sector 3. Top spee
 
 I built this project to practise motorsport data analysis in Python and to explore how telemetry can be turned into something more useful than raw charts.
 
-The bigger long-term idea is to use this as a base for an AI race engineer for sim racing: a tool that can compare laps, read telemetry, explain where time is being lost, and eventually give driver-focused feedback in a more useful and accessible way. Sim-racing telemetry platforms already use overlays, sector analysis, corner-by-corner comparisons, and automated feedback to help drivers improve, so this project is a first step toward that kind of system. [web:2043][web:2044][web:2055]
+The bigger long-term idea is to use this as a base for an AI race engineer for sim racing: a tool that can compare laps, read telemetry, explain where time is being lost, and eventually give driver-focused feedback in a more useful and accessible way. Sim-racing telemetry platforms already use overlays, sector analysis, corner-by-corner comparisons, and automated feedback to help drivers improve, so this project is a first step toward that kind of system.
 
 ## Notes
 

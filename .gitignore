@@ -1,6 +1,6 @@
 cache/
-*.sqlite
+output/
 __pycache__/
 .venv/
 *.pyc
-output/
+*.sqlite
