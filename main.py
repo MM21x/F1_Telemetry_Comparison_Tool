@@ -315,7 +315,9 @@ def run_comparison():
     fig.savefig(plot_path, dpi=300, bbox_inches="tight")
     print(f"Plot saved to: {plot_path}")
 
-    plt.show()
+    # no display inside docker, the plot is already saved above
+    if not os.environ.get("IN_DOCKER"):
+        plt.show()
 
 def main():
     while True:
